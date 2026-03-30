@@ -1,0 +1,295 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-dark-900 text-gray-100 font-sans;
+  background: linear-gradient(135deg, #0b0f1a 0%, #1a0b2e 25%, #0f1a2e 50%, #0b0f1a 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Gradient animation for background */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(122, 0, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  animation: subtle-pulse 8s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Enhanced Glassmorphism effect */
+.glassmorphism {
+  @apply bg-white/5 backdrop-blur-lg border border-white/15;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glassmorphism-thick {
+  @apply bg-white/10 backdrop-blur-xl border border-white/30;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Gradient borders */
+.gradient-border {
+  background: linear-gradient(135deg, #00f0ff, #7a00ff);
+  padding: 1px;
+}
+
+.gradient-border > * {
+  background: inherit;
+  background-color: #0b0f1a;
+}
+
+/* NeoN glow effects - ENHANCED */
+.neon-glow {
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3),
+              0 0 20px rgba(0, 240, 255, 0.15),
+              inset 0 0 10px rgba(0, 240, 255, 0.05);
+}
+
+.neon-glow-md {
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.4),
+              0 0 30px rgba(0, 240, 255, 0.2),
+              inset 0 0 15px rgba(0, 240, 255, 0.08);
+}
+
+.neon-glow-lg {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.5),
+              0 0 40px rgba(0, 240, 255, 0.25),
+              inset 0 0 20px rgba(0, 240, 255, 0.1);
+}
+
+.neon-glow-purple {
+  box-shadow: 0 0 15px rgba(122, 0, 255, 0.4),
+              0 0 30px rgba(122, 0, 255, 0.2),
+              inset 0 0 15px rgba(122, 0, 255, 0.08);
+}
+
+.neon-glow-pink {
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.4),
+              0 0 30px rgba(236, 72, 153, 0.2),
+              inset 0 0 15px rgba(236, 72, 153, 0.08);
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  @apply transition-all duration-300 ease-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-full;
+  background: linear-gradient(180deg, #00f0ff, #7a00ff);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+}
+
+/* Stadium lights animation - ENHANCED */
+@keyframes stadium-light {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 0%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 100%;
+  }
+}
+
+.stadium-lights {
+  background: linear-gradient(-45deg, #0b0f1a, #1a2c5f, #2a1a5f, #0b0f1a);
+  background-size: 400% 400%;
+  animation: stadium-light 20s ease infinite;
+  position: relative;
+}
+
+/* Glow text animation */
+@keyframes glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.4),
+                 0 0 20px rgba(122, 0, 255, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.8),
+                 0 0 40px rgba(122, 0, 255, 0.5),
+                 0 0 60px rgba(0, 240, 255, 0.3);
+  }
+}
+
+.glow-text {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.glow-text-fast {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Shine effect for cards */
+@keyframes shine {
+  0%, 100% {
+    box-shadow: inset -1000px 0 0 -1000px rgba(255, 255, 255, 0),
+                0 0 20px rgba(0, 240, 255, 0.3);
+  }
+  50% {
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(0, 240, 255, 0.5);
+  }
+}
+
+.shine-effect {
+  animation: shine 3s ease-in-out infinite;
+}
+
+/* Pulse urgency animation for timers */
+@keyframes pulse-urgent {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(0, 240, 255, 0);
+  }
+}
+
+.pulse-urgent {
+  animation: pulse-urgent 1s infinite;
+}
+
+.pulse-urgent-fast {
+  animation: pulse-urgent 0.6s infinite;
+}
+
+/* Flash animation for important events */
+@keyframes flash {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.flash-animation {
+  animation: flash 0.5s ease-in-out;
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.shake-animation {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Slide in animations */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-down {
+  animation: slide-down 0.5s ease-out;
+}
+
+/* Ripple effect on click */
+@keyframes ripple {
+  0% {
+    opacity: 1;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4);
+  }
+}
+
+.ripple {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Glow on buttons */
+.btn-glow {
+  box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4);
+  transition: all 0.3s ease-out;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 0 8px rgba(0, 240, 255, 0.1),
+              0 0 15px rgba(0, 240, 255, 0.4),
+              inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+/* Active element highlight */
+.active-glow {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(122, 0, 255, 0.1));
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3),
+              inset 0 0 10px rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.4);
+}
