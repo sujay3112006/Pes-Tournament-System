@@ -1,24 +1,30 @@
 """Users App URLs"""
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.users.views import (
-    CustomTokenObtainPairView,
-    UserRegistrationView,
-    UserViewSet,
+    RegisterView,
+    LoginView,
+    ProfileView,
+    ChangePasswordView,
+    UserDetailView,
+    UserStatisticsView,
+    UserListView,
+    LogoutView,
 )
 
-router = DefaultRouter()
-router.register(r'users', UserViewSet, basename='user')
-
 urlpatterns = [
-    # JWT Token endpoints
-    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # Authentication
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
-    # Registration
-    path('register/', UserRegistrationView.as_view(), name='user_register'),
+    # Profile
+    path('profile/', ProfileView.as_view(), name='profile'),
+    path('profile/change-password/', ChangePasswordView.as_view(), name='change_password'),
     
-    # Users endpoints
-    path('', include(router.urls)),
+    # Users
+    path('users/', UserListView.as_view(), name='user_list'),
+    path('users/<str:user_id>/', UserDetailView.as_view(), name='user_detail'),
+    path('users/<str:user_id>/statistics/', UserStatisticsView.as_view(), name='user_statistics'),
 ]
