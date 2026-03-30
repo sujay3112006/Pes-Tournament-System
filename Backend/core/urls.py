@@ -29,6 +29,7 @@ urlpatterns = [
         path('missions/', include('apps.missions.urls')),
         path('clubs/', include('apps.clubs.urls')),
         path('reports/', include('apps.reports.urls')),
+        path('ml/', include('apps.ml.urls')),
     ])),
 ]
 

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.clubs.apps.ClubsConfig',
     'apps.reports.apps.ReportsConfig',
     'apps.realtime.apps.RealtimeConfig',
+    'apps.ml.apps.MLConfig',
 ]
 
 MIDDLEWARE = [
