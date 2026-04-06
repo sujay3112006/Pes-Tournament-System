@@ -19,9 +19,15 @@ class TournamentCreateSerializer(serializers.Serializer):
     
     def validate(self, data):
         """Validate tournament dates."""
-        if data['start_date'] <= timezone.now():
+        from datetime import timedelta
+        
+        # Allow dates within 5 minutes of now (to handle timezone/timing mismatches and processing delays)
+        # This is lenient because we assume admins won't exploit this
+        min_allowed_time = timezone.now() - timedelta(minutes=5)
+        
+        if data['start_date'] < min_allowed_time:
             raise serializers.ValidationError(
-                {'start_date': 'Tournament start date must be in the future.'}
+                {'start_date': f'Tournament start date must be in the future. Current time: {timezone.now()}, provided: {data["start_date"]}'}
             )
         if data['end_date'] <= data['start_date']:
             raise serializers.ValidationError(

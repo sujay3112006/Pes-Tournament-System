@@ -1,54 +1,109 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
+import Loader from '../components/Loader'
+import { matchService, leaderboardService, authService } from '../services/api'
 
-export default function ProfilePage() {
+export default function ProfilePage({ user }) {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [profile, setProfile] = useState(null)
+  const [matchHistory, setMatchHistory] = useState([])
+  const [lbStats, setLbStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const [userProfile] = useState({
-    id,
-    username: 'ProGamer',
-    level: 25,
-    rating: 2450,
-    rank: '#247',
-    joinDate: '2023-06-15',
-    bio: 'Competitive esports player | Trophy hunter',
-    avatar: 'P',
-    stats: {
-      totalMatches: 456,
-      wins: 320,
-      losses: 136,
-      winRate: 70.2,
-      totalCoins: 125000,
-      achievements: 24,
-    },
-  })
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // Use the id from params, or fall back to logged-in user's ID
+        let playerId = id || user?.user_id
+        
+        // If id looks like a default/invalid value, use logged-in user
+        if (!playerId || playerId === '1' || playerId === 'me') {
+          playerId = user?.user_id
+        }
+        
+        if (!playerId) {
+          console.error('❌ No player ID available')
+          setProfile(null)
+          setLoading(false)
+          return
+        }
 
-  const [matchHistory] = useState([
-    { id: 1, opponent: 'NovaStorm', result: 'Win', score: '3-1', date: '10 mins ago', tournament: 'Pro Series' },
-    { id: 2, opponent: 'SkyKing', result: 'Loss', score: '1-2', date: '2 hours ago', tournament: 'Ultimate Cup' },
-    { id: 3, opponent: 'LunaAce', result: 'Win', score: '4-0', date: '1 day ago', tournament: 'Regional' },
-    { id: 4, opponent: 'VortexX', result: 'Win', score: '2-1', date: '2 days ago', tournament: 'Spring Cup' },
-    { id: 5, opponent: 'PhantomX', result: 'Win', score: '3-2', date: '3 days ago', tournament: 'Pro Series' },
-  ])
+        console.log(`📊 Loading profile for player: ${playerId}`)
+        
+        // If loading own profile, use getProfile()
+        if (playerId === user?.user_id) {
+          const profileRes = await authService.getProfile()
+          setProfile(profileRes.data)
+        } else {
+          // For other players, try to get stats
+          // Note: Backend may not have a direct player profile endpoint
+          setProfile(null)
+        }
 
-  const [achievements] = useState([
-    { id: 1, name: 'First Victory', icon: '🏆', date: '2023-06-16' },
-    { id: 2, name: '100 Matches', icon: '🎮', date: '2023-11-20' },
-    { id: 3, name: 'Win Streak x5', icon: '🔥', date: '2024-01-10' },
-    { id: 4, name: 'Champion', icon: '👑', date: '2024-02-14' },
-  ])
+        // Load match stats
+        try {
+          const statsRes = await matchService.getPlayerStats(playerId)
+          setProfile(prev => prev ? { ...prev, ...statsRes.data } : statsRes.data)
+        } catch (err) {
+          console.warn('⚠️ Match stats error:', err.message)
+          // If this fails with a non-UUID ID, retry with logged-in user
+          if (playerId !== user?.user_id && (err.response?.status === 404 || err.response?.status === 400)) {
+            const statsRes = await matchService.getPlayerStats(user?.user_id)
+            setProfile(prev => prev ? { ...prev, ...statsRes.data } : statsRes.data)
+          }
+        }
+
+        // Load match history
+        try {
+          const matchRes = await matchService.getPlayerMatches(playerId, { status: 'completed', limit: 10 })
+          // Backend returns { count, matches } structure
+          const matches = matchRes.data.matches || matchRes.data.results || (Array.isArray(matchRes.data) ? matchRes.data : [])
+          setMatchHistory(matches)
+        } catch (err) {
+          console.warn('⚠️ Match history error:', err.message)
+          if (playerId !== user?.user_id && (err.response?.status === 404 || err.response?.status === 400)) {
+            const matchRes = await matchService.getPlayerMatches(user?.user_id, { status: 'completed', limit: 10 })
+            const matches = matchRes.data.matches || matchRes.data.results || (Array.isArray(matchRes.data) ? matchRes.data : [])
+            setMatchHistory(matches)
+          }
+        }
+
+        // Load leaderboard stats
+        try {
+          const lbRes = await leaderboardService.getPlayerStats(playerId)
+          setLbStats(lbRes.data)
+        } catch (err) {
+          console.warn('⚠️ Leaderboard stats error:', err.message)
+          if (playerId !== user?.user_id && (err.response?.status === 404 || err.response?.status === 400)) {
+            try {
+              const lbRes = await leaderboardService.getPlayerStats(user?.user_id)
+              setLbStats(lbRes.data)
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.error('Profile load error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id, user])
+
+  if (loading) return <div className="flex justify-center py-20"><Loader message="Loading profile..." /></div>
+  if (!profile) return <p className="text-gray-400 text-center py-20">Player not found.</p>
+
+  const isOwnProfile = user?.user_id === (id || user?.user_id)
+  const winRate = profile.win_rate?.toFixed(1) ?? 0
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {/* Header */}
-      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">
-        ← Back
-      </Button>
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">← Back</Button>
 
       {/* Profile Header */}
       <Card variant="glow" className="mb-8">
@@ -56,32 +111,32 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-6">
               <div className="w-24 h-24 rounded-full bg-gradient-to-r from-neon-blue to-neon-purple flex items-center justify-center text-4xl font-bold">
-                {userProfile.avatar}
+                {profile.username?.[0]?.toUpperCase() ?? '?'}
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-white mb-1">{userProfile.username}</h1>
-                <p className="text-gray-400 mb-4">{userProfile.bio}</p>
-                <div className="flex gap-3">
-                  <Badge variant="primary">Rank {userProfile.rank}</Badge>
-                  <Badge variant="purple">Level {userProfile.level}</Badge>
-                </div>
+                <h1 className="text-4xl font-bold text-white mb-1">{profile.username}</h1>
+                {lbStats && (
+                  <div className="flex gap-3 mt-2">
+                    <Badge variant="primary">Rank #{lbStats.rank}</Badge>
+                    <Badge variant="purple">{lbStats.points} pts</Badge>
+                  </div>
+                )}
               </div>
             </div>
-            <Button variant="primary" size="lg">Follow</Button>
+            {isOwnProfile && <Badge variant="success">You</Badge>}
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-8 border-t border-white/10">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-white/10">
             {[
-              { label: 'Matches', value: userProfile.stats.totalMatches },
-              { label: 'Win Rate', value: `${userProfile.stats.winRate}%` },
-              { label: 'Rank Rating', value: userProfile.rating },
-              { label: 'Coins', value: `${(userProfile.stats.totalCoins / 1000).toFixed(0)}k` },
-              { label: 'Achievements', value: userProfile.stats.achievements },
-            ].map((stat, idx) => (
+              { label: 'Matches', value: profile.total_matches ?? 0 },
+              { label: 'Wins', value: profile.wins ?? 0 },
+              { label: 'Losses', value: profile.losses ?? 0 },
+              { label: 'Win Rate', value: `${winRate}%` },
+              { label: 'Goals', value: profile.goals_scored ?? 0 },
+            ].map((s, idx) => (
               <div key={idx} className="text-center">
-                <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-neon-blue">{stat.value}</p>
+                <p className="text-gray-400 text-sm mb-1">{s.label}</p>
+                <p className="text-2xl font-bold text-neon-blue">{s.value}</p>
               </div>
             ))}
           </div>
@@ -89,80 +144,78 @@ export default function ProfilePage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Match History */}
+        {/* Match History */}
+        <div className="lg:col-span-2">
           <Card variant="elevated">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-white mb-6">📜 Recent Matches</h2>
+              {matchHistory.length === 0 && <p className="text-gray-400">No matches played yet.</p>}
               <div className="space-y-3">
-                {matchHistory.map((match, idx) => (
-                  <motion.div
-                    key={match.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center justify-between p-4 bg-dark-800/50 rounded-lg hover:bg-dark-700 transition-smooth"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-semibold text-white">vs {match.opponent}</span>
-                        <Badge variant={match.result === 'Win' ? 'success' : 'danger'} size="sm">
-                          {match.result}
-                        </Badge>
+                {matchHistory.map((match, idx) => {
+                  const isP1 = match.player1_id === id
+                  const opponent = isP1 ? match.player2_username : match.player1_username
+                  const myScore = isP1 ? match.score?.player1 : match.score?.player2
+                  const oppScore = isP1 ? match.score?.player2 : match.score?.player1
+                  const won = match.winner_id === id
+                  const isDraw = match.is_draw
+                  const result = isDraw ? 'Draw' : won ? 'Win' : 'Loss'
+
+                  return (
+                    <motion.div
+                      key={match.match_id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-center justify-between p-4 bg-dark-800/50 rounded-lg hover:bg-dark-700 transition-smooth cursor-pointer"
+                      onClick={() => navigate(`/match/${match.match_id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-semibold text-white">vs {opponent}</span>
+                          <Badge variant={result === 'Win' ? 'success' : result === 'Loss' ? 'danger' : 'warning'} size="sm">
+                            {result}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-400">{match.match_date ? new Date(match.match_date).toLocaleDateString() : ''}</p>
                       </div>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-gray-400">{match.tournament}</span>
-                        <span className="text-gray-500">{match.date}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-neon-blue">{match.score}</p>
-                    </div>
-                  </motion.div>
-                ))}
+                      {match.score && (
+                        <p className="text-lg font-bold text-neon-blue">{myScore} - {oppScore}</p>
+                      )}
+                    </motion.div>
+                  )
+                })}
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar Stats */}
         <div className="space-y-6">
-          {/* Achievements */}
-          <Card variant="glow">
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4">🎖️ Achievements</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {achievements.map((achievement, idx) => (
-                  <motion.div
-                    key={achievement.id}
-                    whileHover={{ scale: 1.05 }}
-                    className="p-3 bg-dark-800 rounded-lg text-center hover:bg-dark-700 transition-smooth cursor-pointer"
-                    title={`${achievement.name} - ${achievement.date}`}
-                  >
-                    <div className="text-2xl mb-1">{achievement.icon}</div>
-                    <p className="text-xs text-gray-300">{achievement.name.split(' ')[0]}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          {/* Info */}
           <Card variant="dark">
             <div className="p-6 space-y-4 text-sm">
-              <div>
-                <p className="text-gray-400 mb-1">Member Since</p>
-                <p className="font-semibold text-white">{userProfile.joinDate}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 mb-1">Total Wins</p>
-                <p className="font-semibold text-green-400">{userProfile.stats.wins}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 mb-1">Total Losses</p>
-                <p className="font-semibold text-red-400">{userProfile.stats.losses}</p>
-              </div>
+              <h3 className="text-lg font-bold text-white">Career Stats</h3>
+              {[
+                { label: 'Goals Scored', value: profile.goals_scored ?? 0, color: 'text-green-400' },
+                { label: 'Goals Conceded', value: profile.goals_conceded ?? 0, color: 'text-red-400' },
+                { label: 'Draws', value: profile.draws ?? 0, color: 'text-yellow-400' },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between">
+                  <span className="text-gray-400">{s.label}</span>
+                  <span className={`font-semibold ${s.color}`}>{s.value}</span>
+                </div>
+              ))}
+              {lbStats && (
+                <>
+                  <div className="flex justify-between pt-3 border-t border-dark-700">
+                    <span className="text-gray-400">Tournaments</span>
+                    <span className="font-semibold text-white">{lbStats.tournaments_participated ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Leaderboard Pts</span>
+                    <span className="font-semibold text-neon-blue">{lbStats.points ?? 0}</span>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         </div>

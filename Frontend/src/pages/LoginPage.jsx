@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Button'
@@ -7,16 +7,47 @@ import { validateEmail, validatePassword } from '../utils/helpers'
 import { authService } from '../services/api'
 
 export default function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [loginSuccess, setLoginSuccess] = useState(false)
   const navigate = useNavigate()
+
+  // Redirect after successful login
+  useEffect(() => {
+    if (loginSuccess) {
+      console.log('✅ Login successful! Checking localStorage...')
+      console.log('✅ access_token:', localStorage.getItem('access_token'))
+      console.log('✅ refresh_token:', localStorage.getItem('refresh_token'))
+      console.log('✅ user:', localStorage.getItem('user'))
+      
+      // Wait a tick for state to propagate, then navigate
+      setTimeout(() => {
+        console.log('⏰ Timeout complete, now navigating to /')
+        navigate('/', { replace: true })
+      }, 50)
+    }
+  }, [loginSuccess, navigate])
+
+  // Check for debug info from previous login attempts
+  useEffect(() => {
+    const debug = sessionStorage.getItem('login_debug')
+    if (debug) {
+      console.log('📋 Previous login attempt debug info:')
+      console.log(JSON.parse(debug))
+    }
+    // Also make it available globally
+    window.getLoginDebug = () => {
+      const debug = sessionStorage.getItem('login_debug')
+      return debug ? JSON.parse(debug) : null
+    }
+    console.log('💡 Run window.getLoginDebug() in console to see login error details')
+  }, [])
 
   const validateForm = () => {
     const newErrors = {}
-    if (!email) newErrors.email = 'Email is required'
-    else if (!validateEmail(email)) newErrors.email = 'Invalid email format'
+    if (!username) newErrors.username = 'Username is required'
     if (!password) newErrors.password = 'Password is required'
     return newErrors
   }
@@ -31,12 +62,73 @@ export default function LoginPage({ onLogin }) {
 
     try {
       setLoading(true)
-      const response = await authService.login(email, password)
-      onLogin(response.data.token, response.data.user)
-      navigate('/')
+      console.log('🔄 Sending login request...', { username, password })
+      sessionStorage.setItem('login_debug', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        step: 'sending_request',
+        username
+      }))
+      
+      const response = await authService.login(username, password)
+      const { data } = response
+      console.log('✅ Login response received:', data)
+      console.log('✅ Response keys:', Object.keys(data))
+      console.log('✅ Access token:', data.access)
+      console.log('✅ Refresh token:', data.refresh)
+      console.log('✅ User data:', data.user)
+      
+      sessionStorage.setItem('login_debug', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        step: 'response_received',
+        hasAccess: !!data.access,
+        hasRefresh: !!data.refresh,
+        hasUser: !!data.user,
+        dataKeys: Object.keys(data)
+      }))
+      
+      if (!data.access || !data.refresh || !data.user) {
+        console.error('❌ Invalid response format:', data)
+        console.error('Missing tokens - access:', data.access, 'refresh:', data.refresh, 'user:', data.user)
+        setErrors({ submit: 'Invalid server response - missing tokens or user data' })
+        sessionStorage.setItem('login_debug', JSON.stringify({
+          timestamp: new Date().toISOString(),
+          step: 'validation_failed',
+          missingFields: {
+            access: !data.access,
+            refresh: !data.refresh,
+            user: !data.user
+          }
+        }))
+        setLoading(false)
+        return
+      }
+      
+      console.log('✅ Calling onLogin callback...')
+      onLogin(data.user, data.access, data.refresh)
+      console.log('✅ Token saved to localStorage:', localStorage.getItem('access_token'))
+      sessionStorage.setItem('login_debug', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        step: 'login_success',
+        tokenSaved: !!localStorage.getItem('access_token')
+      }))
+      setLoginSuccess(true)
     } catch (error) {
-      setErrors({ submit: error.response?.data?.message || 'Login failed' })
-    } finally {
+      console.error('❌ Login error:', error)
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      console.error('Error config:', error.config)
+      
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed'
+      setErrors({ submit: errorMsg })
+      
+      sessionStorage.setItem('login_debug', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        step: 'login_error',
+        errorMessage: errorMsg,
+        responseData: error.response?.data,
+        errorMessage2: error.message
+      }))
+      
       setLoading(false)
     }
   }
@@ -64,6 +156,26 @@ export default function LoginPage({ onLogin }) {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md z-10"
       >
+        {loginSuccess ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="glassmorphism-thick rounded-2xl p-8 border-2 border-neon-cyan/40 shadow-glow-lg"
+          >
+            <div className="text-center">
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+                className="text-6xl mb-4"
+              >
+                ✅
+              </motion.div>
+              <h2 className="text-3xl font-black text-neon-cyan mb-2">Welcome Back!</h2>
+              <p className="text-gray-300">Redirecting to dashboard...</p>
+            </div>
+          </motion.div>
+        ) : (
         <div className="glassmorphism-thick rounded-2xl p-8 border-2 border-neon-blue/40 shadow-glow-lg relative overflow-hidden">
           {/* Animated gradient border */}
           <motion.div
@@ -104,15 +216,15 @@ export default function LoginPage({ onLogin }) {
               )}
 
               <Input
-                label="📧 Email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
+                label="👤 Username"
+                type="text"
+                placeholder="your_username"
+                value={username}
                 onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (errors.email) setErrors({ ...errors, email: '' })
+                  setUsername(e.target.value)
+                  if (errors.username) setErrors({ ...errors, username: '' })
                 }}
-                error={errors.email}
+                error={errors.username}
                 required
               />
 
@@ -170,6 +282,7 @@ export default function LoginPage({ onLogin }) {
             </p>
           </div>
         </div>
+        )}
       </motion.div>
     </div>
   )

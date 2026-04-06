@@ -32,6 +32,16 @@ class User(Document):
         'indexes': ['user_id', 'username', 'email', 'created_at'],
     }
     
+    @property
+    def is_authenticated(self):
+        """Required by DRF authentication."""
+        return self.is_active
+    
+    @property
+    def id(self):
+        """Alias for user_id for Django compatibility."""
+        return self.user_id
+    
     def __str__(self):
         return f"{self.username} ({self.email})"
     

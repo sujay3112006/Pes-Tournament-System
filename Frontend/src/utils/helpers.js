@@ -46,5 +46,11 @@ export function validateEmail(email) {
 }
 
 export function validatePassword(password) {
-  return password.length >= 8
+  // Backend requires: min 8 chars, 1 uppercase, 1 lowercase, 1 digit
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /[0-9]/.test(password)
+  )
 }

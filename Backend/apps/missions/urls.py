@@ -13,8 +13,8 @@ from apps.missions.views import (
 
 urlpatterns = [
     # Mission discovery
-    path('missions/available/', AvailableMissionsView.as_view(), name='available_missions'),
-    path('missions/start/<str:mission_id>/', StartMissionView.as_view(), name='start_mission'),
+    path('available/', AvailableMissionsView.as_view(), name='available_missions'),
+    path('start/<str:mission_id>/', StartMissionView.as_view(), name='start_mission'),
     
     # User missions
     path('my-missions/', UserMissionsView.as_view(), name='user_missions'),

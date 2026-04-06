@@ -269,16 +269,19 @@ class UserMatchStatsView(generics.GenericAPIView):
             user_id = request.user.user_id
         
         try:
-            from apps.users.models import UserStatistics
+            from apps.users.models import User, UserStatistics
+            user = User.objects.get(user_id=user_id)
             stats = UserStatistics.objects.get(user_id=user_id)
             
             return Response({
                 'user_id': user_id,
+                'username': user.username,
                 'total_matches': stats.total_matches,
-                'match_wins': stats.match_wins,
-                'match_losses': stats.match_losses,
-                'match_draws': stats.match_draws,
+                'wins': stats.match_wins,
+                'losses': stats.match_losses,
+                'draws': stats.match_draws,
                 'win_rate': stats.win_rate,
+                'goals_scored': stats.goals_scored,
             })
         except Exception as e:
             return Response(

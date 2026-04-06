@@ -21,8 +21,17 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lamb
 
 # Application definition
 INSTALLED_APPS = [
-    # Django apps
-    'daphne',  # Django Channels support
+    # Django apps (daphne should be first for channels)
+]
+
+# Add daphne if installed (temporarily disabled for development)
+try:
+    import daphne
+    # INSTALLED_APPS.append('daphne')  # ← Commented out to use WSGI instead of ASGI
+except ImportError:
+    pass
+
+INSTALLED_APPS.extend([
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,12 +41,40 @@ INSTALLED_APPS = [
     
     # Third-party apps
     'rest_framework',
-    'rest_framework_simplejwt',
+])
+
+# Add rest_framework_simplejwt if available
+try:
+    import rest_framework_simplejwt
+    INSTALLED_APPS.append('rest_framework_simplejwt')
+except ImportError:
+    pass
+
+INSTALLED_APPS.extend([
     'corsheaders',
-    'channels',
-    'drf_spectacular',
-    'django_filters',
-    
+])
+
+# Add channels if installed  
+try:
+    import channels
+    INSTALLED_APPS.append('channels')
+except ImportError:
+    pass
+
+# Add optional third-party packages
+try:
+    import drf_spectacular
+    INSTALLED_APPS.append('drf_spectacular')
+except ImportError:
+    pass
+
+try:
+    import django_filters
+    INSTALLED_APPS.append('django_filters')
+except ImportError:
+    pass
+
+INSTALLED_APPS.extend([
     # Local apps
     'apps.users.apps.UsersConfig',
     'apps.tournaments.apps.TournamentsConfig',
@@ -49,7 +86,7 @@ INSTALLED_APPS = [
     'apps.reports.apps.ReportsConfig',
     'apps.realtime.apps.RealtimeConfig',
     'apps.ml.apps.MLConfig',
-]
+])
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -82,47 +119,44 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = 'core.asgi.application'
+# ASGI_APPLICATION = 'core.asgi.application'  # ← Disabled, using WSGI instead
 
-# MongoDB Configuration using Djongo
+# Database Configuration
+# Using SQLite for Django's built-in apps (auth, sessions, etc.)
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'NAME': config('MONGO_DB_NAME', default='football_tournament'),
-        'ENFORCE_SCHEMA_IN_MIGRATION': False,
-        'CLIENT': {
-            'host': config('MONGO_HOST', default='mongodb://localhost:27017'),
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
-# Alternative: Using MongoDB directly without djongo (if preferred)
-# Uncomment below and comment the djongo config if using mongoengine
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',  # Fallback for auth
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-# 
-# MONGOENGINE_CONNECT_ALIAS = 'default'
-# MONGOENGINE_DB = 'football_tournament'
-# MONGOENGINE_DB_URI = 'mongodb://localhost:27017/football_tournament'
+# MongoDB Configuration for Mongoengine
+MONGO_HOST = config('MONGO_HOST', default='mongodb://localhost:27017')
+MONGO_DB_NAME = config('MONGO_DB_NAME', default='football_tournament')
+
+try:
+    import mongoengine
+    # Configure mongoengine 
+    mongoengine.connect(
+        db=MONGO_DB_NAME,
+        host=MONGO_HOST,
+        retryWrites=False,  # Set to False for compatibility
+    )
+except Exception as e:
+    print(f"⚠️ MongoDB connection warning: {e}")
+    print("Using SQLite as fallback - MongoDB functionality may be limited")
 
 # Cache Configuration
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'football-tournament-cache',
     }
 }
 
 # Session Configuration
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+# SESSION_CACHE_ALIAS = 'default'
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -161,10 +195,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ============ Django REST Framework Configuration ============
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'core.authentication.SimpleTokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -195,31 +230,31 @@ REST_FRAMEWORK = {
 }
 
 # ============ JWT Configuration ============
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_LIFETIME', default=15, cast=int)),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=config('JWT_REFRESH_LIFETIME', default=7, cast=int)),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'VERIFYING_KEY': None,
-    'AUDIENCE': None,
-    'ISSUER': None,
-    'JTI_CLAIM': 'jti',
-    'TOKEN_TYPE_CLAIM': 'token_type',
-    'JTI_CLAIM': 'jti',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
-}
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_LIFETIME', default=15, cast=int)),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=config('JWT_REFRESH_LIFETIME', default=7, cast=int)),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'BLACKLIST_AFTER_ROTATION': True,
+#     'UPDATE_LAST_LOGIN': True,
+#     'ALGORITHM': 'HS256',
+#     'SIGNING_KEY': SECRET_KEY,
+#     'VERIFYING_KEY': None,
+#     'AUDIENCE': None,
+#     'ISSUER': None,
+#     'JTI_CLAIM': 'jti',
+#     'TOKEN_TYPE_CLAIM': 'token_type',
+#     'JTI_CLAIM': 'jti',
+#     'USER_ID_FIELD': 'id',
+#     'USER_ID_CLAIM': 'user_id',
+#     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+#     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+#     'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+# }
 
 # ============ CORS Configuration ============
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000',
+    default='http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 CORS_ALLOW_CREDENTIALS = True

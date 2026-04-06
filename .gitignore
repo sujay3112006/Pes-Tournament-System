@@ -1,0 +1,301 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Football Tournament Project - Comprehensive .gitignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─ Python & Django ────────────────────────────────────────────────────────────
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+*.egg
+.env
+.env.local
+.env.*.local
+
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+.django_migrations_ignore
+
+# ─ Node.js & React ────────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.node_repl_history
+dist/
+build/
+.next/
+out/
+.netlify
+.vercel
+
+# React / Vite specific
+.vite/
+.eslintcache
+dist/
+*.local
+
+# ─ IDE & Editor Configuration ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+*.sublime-workspace
+*.sublime-project
+.project
+.pydevproject
+.settings/
+*.iml
+.metadata
+.classpath
+
+# ─ OS Files ───────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.env.example
+.env.test
+
+# ─ IDE Temporary Files ────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+.~*
+*.orig
+*.rej
+
+# ─ OS & Temporary ─────────────────────────────────────────────────────────────
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+.pyo
+
+# ─ Build & Compilation ────────────────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.whl
+*.tar.gz
+*.zip
+
+# ─ Database Files ─────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+.mongorc.js
+
+# ─ Local Development Tools ────────────────────────────────────────────────────
+.localhistory/
+.history
+
+# ─ Backend Specific ───────────────────────────────────────────────────────────
+Backend/.env
+Backend/.venv
+Backend/logs/*
+Backend/media/*
+Backend/staticfiles/*
+Backend/db.sqlite3
+Backend/__pycache__/
+Backend/*.pyc
+Backend/apps/**/__pycache__/
+Backend/apps/**/*.pyc
+Backend/core/__pycache__/
+Backend/core/*.pyc
+
+# ─ Frontend Specific ──────────────────────────────────────────────────────────
+Frontend/node_modules/
+Frontend/dist/
+Frontend/build/
+Frontend/.vite/
+Frontend/.eslintcache
+Frontend/package-lock.json
+Frontend/yarn.lock
+
+# ─ Celery ─────────────────────────────────────────────────────────────────────
+celerybeat-schedule
+celerybeat.pid
+
+# ─ Docker ─────────────────────────────────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml
+
+# ─ Environment ────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# ─ Testing ────────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+test_results.xml
+coverage.xml
+*.cover
+
+# ─ Bundler ────────────────────────────────────────────────────────────────────
+.bundle/
+vendor/bundle/
+lib/bundler/man/
+
+# ─ Linting & Formatting ───────────────────────────────────────────────────────
+.flake8
+.pylint
+
+# ─ Security & Credentials ─────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+secrets.json
+.secrets/
+
+# ─ Analytics & Monitoring ────────────────────────────────────────────────────
+.sentry/
+.monitoring/
+
+# ─ Generated Files ────────────────────────────────────────────────────────────
+.generated/
+
+# ─ Backup Files ────────────────────────────────────────────────────────────
+*.backup
+*.bak
+*.tmp
+*.temp
+*.orig
+
+# ─ Virtual Environments ────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.env/
+~/.python-*
+
+# ─ IDEs ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+.code-workspace
+.prettierignore
+.prettierrc
+.stylelintrc
+.editorconfig
+
+# ─ OS Artifacts ────────────────────────────────────────────────────────────
+.AppleDouble
+.LSOverride
+._*
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─ Cache Directories ────────────────────────────────────────────────────────
+.cache/
+.pytest_cache/
+.eslintcache
+.stylelintcache
+.phpcs-cache
+
+# ─ Lock Files (keep in development, exclude in libraries) ────────────────────
+# Uncomment if publishing as a library
+# package-lock.json
+# yarn.lock
+
+# ─ Personal/Local Files ────────────────────────────────────────────────────
+.local/
+.my_*
+*.local.*
+debug.log
+scratch.py
+test_local.py
+
+# ─ Build Artifacts ────────────────────────────────────────────────────────
+*.o
+*.so
+*.dylib
+*.bundle
+*.la
+*.a
+*.lib
+*.dll
+*.exe
+
+# ─ Coverage Reports ────────────────────────────────────────────────────────
+htmlcov/
+.coverage
+.coverage.*
+
+# ─ Dependencies ────────────────────────────────────────────────────────────────
+Backend/apps/**/migrations/0*.py
+!Backend/apps/**/migrations/__init__.py
+
+# ─ Logs Directory ──────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ─ Exports (CSV, Excel) ────────────────────────────────────────────────────────
+exports/
+*.csv
+*.xlsx
+export_*.json
+
+# ─ Temporary Data Files ───────────────────────────────────────────────────────
+temp/
+tmp/
+*.tmp
+*.temp
+temp_*.py
+
+# ─ IDE Run Configurations ─────────────────────────────────────────────────────
+.vscode/launch.json
+.vscode/settings.json
+.idea/runConfigurations/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# END OF GITIGNORE
+# ─────────────────────────────────────────────────────────────────────────────

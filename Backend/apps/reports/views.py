@@ -13,10 +13,9 @@ from apps.reports.serializers import (
     ReportDetailSerializer,
     CreateReportSerializer,
     ReviewReportSerializer,
-    ResolveReportSerializer,
     ReportStatsSerializer,
-    ReportHistorySerializer,
-    AdminReportListSerializer,
+    # ReportHistorySerializer,
+    # AdminReportListSerializer,
 )
 import uuid
 import logging
@@ -139,7 +138,7 @@ class ReportDetailView(generics.GenericAPIView):
 
 class UserReportHistoryView(generics.ListAPIView):
     """Get user's report history."""
-    serializer_class = ReportHistorySerializer
+    serializer_class = ReportListSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -158,7 +157,7 @@ class UserReportHistoryView(generics.ListAPIView):
 
 class AdminReportListView(generics.ListAPIView):
     """Get all reports for admin review."""
-    serializer_class = AdminReportListSerializer
+    serializer_class = ReportListSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -236,7 +235,7 @@ class ReviewReportView(generics.GenericAPIView):
 
 class ResolveReportView(generics.GenericAPIView):
     """Resolve a report with action."""
-    serializer_class = ResolveReportSerializer
+    serializer_class = ReviewReportSerializer
     permission_classes = [IsAuthenticated]
     
     def post(self, request, report_id, *args, **kwargs):
@@ -331,7 +330,7 @@ class ReportStatsView(generics.GenericAPIView):
 
 class PendingReportsView(generics.ListAPIView):
     """Get pending reports awaiting review."""
-    serializer_class = AdminReportListSerializer
+    serializer_class = ReportListSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):

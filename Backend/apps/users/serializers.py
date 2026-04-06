@@ -1,7 +1,7 @@
 """Users App Serializers"""
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
+# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+# from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import User, UserStatistics, UserBadge
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
@@ -139,10 +139,10 @@ class UserProfileSerializer(serializers.Serializer):
     user_id = serializers.CharField(read_only=True)
     username = serializers.CharField(read_only=True)
     email = serializers.EmailField(read_only=True)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
     bio = serializers.CharField(required=False, allow_blank=True)
-    avatar_url = serializers.URLField(required=False, allow_blank=True)
+    avatar_url = serializers.CharField(required=False, allow_blank=True)  # Changed from URLField
     phone_number = serializers.CharField(required=False, allow_blank=True)
     country = serializers.CharField(required=False, allow_blank=True)
     coins = serializers.IntegerField(read_only=True)

@@ -292,3 +292,185 @@ class RankedPlayerListView(generics.ListAPIView):
             'count': len(queryset),
             'rankings': serializer.data,
         })
+
+
+# ── Global Leaderboard Views (Not Tournament-Specific) ────────────────────────
+
+class GlobalTopPlayersView(generics.ListAPIView):
+    """Get top N players across all tournaments."""
+    serializer_class = TopPlayersSerializer
+    permission_classes = [AllowAny]
+    
+    def list(self, request, *args, **kwargs):
+        limit = int(request.query_params.get('limit', 10))
+        limit = min(limit, 100)  # Max 100
+        
+        # Get unique players and their total points across all tournaments
+        from django.db.models import Sum
+        try:
+            # For MongoDB, we need a different approach
+            # Get all entries and aggregate by user
+            all_entries = LeaderboardEntry.objects.all()
+            
+            # Group by user_id and sum points
+            user_points = {}
+            for entry in all_entries:
+                if entry.user_id not in user_points:
+                    user_points[entry.user_id] = {
+                        'user_id': entry.user_id,
+                        'username': entry.username,
+                        'points': 0,
+                        'matches_played': 0,
+                        'wins': 0,
+                    }
+                user_points[entry.user_id]['points'] += entry.points if entry.points else 0
+            
+            # Sort by points (descending) and take top N
+            sorted_players = sorted(
+                user_points.values(),
+                key=lambda x: x['points'],
+                reverse=True
+            )[:limit]
+            
+            return Response({
+                'limit': limit,
+                'count': len(sorted_players),
+                'results': sorted_players,
+            })
+        except Exception as e:
+            logger.error(f"Error retrieving global top players: {str(e)}")
+            return Response(
+                {'results': []},
+                status=status.HTTP_200_OK
+            )
+
+
+class GlobalRankingsView(generics.ListAPIView):
+    """Get global rankings across all tournaments."""
+    serializer_class = RankingListSerializer
+    permission_classes = [AllowAny]
+    
+    def list(self, request, *args, **kwargs):
+        limit = int(request.query_params.get('limit', 20))
+        limit = min(limit, 100)  # Max 100
+        
+        try:
+            # Get all entries and aggregate by user
+            all_entries = LeaderboardEntry.objects.all()
+            
+            # Group by user_id and sum points
+            user_data = {}
+            for entry in all_entries:
+                if entry.user_id not in user_data:
+                    user_data[entry.user_id] = {
+                        'user_id': entry.user_id,
+                        'username': entry.username,
+                        'points': 0,
+                        'rank': 0,
+                    }
+                user_data[entry.user_id]['points'] += entry.points if entry.points else 0
+            
+            # Sort by points (descending) and assign ranks
+            sorted_users = sorted(
+                user_data.values(),
+                key=lambda x: x['points'],
+                reverse=True
+            )
+            
+            for idx, user in enumerate(sorted_users, 1):
+                user['rank'] = idx
+            
+            # Return top N
+            top_list = sorted_users[:limit]
+            
+            return Response({
+                'limit': limit,
+                'count': len(top_list),
+                'results': top_list,
+            })
+        except Exception as e:
+            logger.error(f"Error retrieving global rankings: {str(e)}")
+            return Response(
+                {'results': []},
+                status=status.HTTP_200_OK
+            )
+
+
+class GlobalPlayerStatsView(generics.GenericAPIView):
+    """Get global statistics for a specific player."""
+    permission_classes = [AllowAny]
+    
+    def get(self, request, user_id, *args, **kwargs):
+        try:
+            # Get player's global rank
+            all_entries = LeaderboardEntry.objects.all()
+            
+            # Group by user_id and sum points
+            user_data = {}
+            for entry in all_entries:
+                if entry.user_id not in user_data:
+                    user_data[entry.user_id] = {
+                        'user_id': entry.user_id,
+                        'username': entry.username,
+                        'points': 0,
+                    }
+                user_data[entry.user_id]['points'] += entry.points if entry.points else 0
+            
+            # Sort by points and assign ranks
+            sorted_users = sorted(
+                user_data.values(),
+                key=lambda x: x['points'],
+                reverse=True
+            )
+            
+            # Find player's rank
+            player_rank = None
+            player_points = 0
+            for idx, user in enumerate(sorted_users, 1):
+                if user['user_id'] == user_id:
+                    player_rank = idx
+                    player_points = user['points']
+                    break
+            
+            if player_rank is None:
+                return Response(
+                    {'error': 'Player not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Get match statistics
+            from apps.users.models import UserStatistics
+            try:
+                stats = UserStatistics.objects.get(user_id=user_id)
+                match_stats = {
+                    'total_matches': stats.total_matches,
+                    'wins': stats.match_wins,
+                    'losses': stats.match_losses,
+                    'draws': stats.match_draws,
+                    'win_rate': stats.win_rate,
+                    'goals_scored': stats.goals_scored,
+                }
+            except:
+                match_stats = {
+                    'total_matches': 0,
+                    'wins': 0,
+                    'losses': 0,
+                    'draws': 0,
+                    'win_rate': 0.0,
+                    'goals_scored': 0,
+                }
+            
+            return Response({
+                'user_id': user_id,
+                'username': user_data[user_id]['username'] if user_id in user_data else '',
+                'rank': player_rank,
+                'points': player_points,
+                **match_stats,
+            })
+        except Exception as e:
+            logger.error(f"Error retrieving player stats: {str(e)}")
+            return Response(
+                {'error': 'Failed to retrieve player statistics'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+

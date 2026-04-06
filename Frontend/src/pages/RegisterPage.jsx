@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import { validateEmail, validatePassword } from '../utils/helpers'
 import { authService } from '../services/api'
+
 
 export default function RegisterPage({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -15,7 +16,19 @@ export default function RegisterPage({ onLogin }) {
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [registerSuccess, setRegisterSuccess] = useState(false)
   const navigate = useNavigate()
+
+  // Redirect after successful registration
+  useEffect(() => {
+    if (registerSuccess) {
+      const timer = setTimeout(() => {
+        console.log('🔄 Redirecting to dashboard after registration...')
+        navigate('/', { replace: true })
+      }, 100) // Small delay to ensure state updates
+      return () => clearTimeout(timer)
+    }
+  }, [registerSuccess, navigate])
 
   const validateForm = () => {
     const newErrors = {}
@@ -23,7 +36,7 @@ export default function RegisterPage({ onLogin }) {
     if (!formData.email) newErrors.email = 'Email is required'
     else if (!validateEmail(formData.email)) newErrors.email = 'Invalid email format'
     if (!formData.password) newErrors.password = 'Password is required'
-    else if (!validatePassword(formData.password)) newErrors.password = 'Password must be at least 8 characters'
+    else if (!validatePassword(formData.password)) newErrors.password = 'Min 8 chars with uppercase, lowercase & digit'
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
     return newErrors
   }
@@ -44,16 +57,31 @@ export default function RegisterPage({ onLogin }) {
 
     try {
       setLoading(true)
-      const response = await authService.register(
+      console.log('🔄 Sending registration request...', { username: formData.username, email: formData.email })
+      const { data } = await authService.register(
+        formData.username,
         formData.email,
         formData.password,
-        formData.username
+        formData.firstName,
+        formData.lastName
       )
-      onLogin(response.data.token, response.data.user)
-      navigate('/')
+      console.log('✅ Registration response received:', data)
+      
+      if (!data.access || !data.refresh || !data.user) {
+        console.error('❌ Invalid response format:', data)
+        setErrors({ submit: 'Invalid server response - missing tokens or user data' })
+        return
+      }
+      
+      console.log('✅ Calling onLogin callback...')
+      onLogin(data.user, data.access, data.refresh)
+      console.log('✅ Token saved to localStorage:', localStorage.getItem('access_token'))
+      setRegisterSuccess(true)
     } catch (error) {
-      setErrors({ submit: error.response?.data?.message || 'Registration failed' })
-    } finally {
+      console.error('❌ Registration error:', error)
+      console.error('Error response:', error.response?.data)
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Registration failed'
+      setErrors({ submit: errorMsg })
       setLoading(false)
     }
   }

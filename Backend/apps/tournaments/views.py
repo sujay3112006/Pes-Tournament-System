@@ -28,8 +28,18 @@ class CreateTournamentView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def create(self, request, *args, **kwargs):
+        logger.info(f"Create tournament request: {request.data}")
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        
+        if not serializer.is_valid():
+            logger.error(f"Tournament validation errors: {serializer.errors}")
+            return Response(
+                {
+                    'message': 'Tournament validation failed',
+                    'errors': serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Create tournament
         tournament_id = str(uuid.uuid4())
@@ -64,6 +74,7 @@ class CreateTournamentView(generics.CreateAPIView):
             # Update tournament player count
             tournament.current_players = 1
             tournament.save()
+            logger.info(f"Tournament created: {tournament_id} by {request.user.username}")
         except Exception as e:
             logger.error(f"Error adding creator to tournament: {str(e)}")
         

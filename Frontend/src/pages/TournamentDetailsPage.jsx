@@ -1,119 +1,128 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
 import ProgressBar from '../components/ProgressBar'
+import Loader from '../components/Loader'
+import { tournamentService, matchService } from '../services/api'
 
-export default function TournamentDetailsPage() {
+export default function TournamentDetailsPage({ user }) {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [tournament] = useState({
-    id,
-    name: 'Spring Championship 2026',
-    format: 'Knockout',
-    description: 'Compete with the best players and win amazing prizes!',
-    players: 18,
-    maxPlayers: 64,
-    status: 'upcoming',
-    prize: '$10,000',
-    entryFee: '$50',
-    startDate: '2026-04-01',
-    registered: true,
-  })
+  const [tournament, setTournament] = useState(null)
+  const [matches, setMatches] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [joining, setJoining] = useState(false)
+  const [error, setError] = useState('')
 
-  const [players] = useState([
-    { id: 1, name: 'ProGamer', rank: 1, rating: 92 },
-    { id: 2, name: 'NovaStorm', rank: 2, rating: 89 },
-    { id: 3, name: 'SkyKing', rank: 3, rating: 88 },
-    { id: 4, name: 'LunaAce', rank: 4, rating: 87 },
-  ])
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [tRes, mRes] = await Promise.all([
+          tournamentService.getById(id),
+          matchService.getTournamentMatches(id),
+        ])
+        setTournament(tRes.data)
+        const matches = mRes.data.matches || mRes.data.results || (Array.isArray(mRes.data) ? mRes.data : [])
+        setMatches(matches)
+      } catch (err) {
+        console.error('Failed to load tournament:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id])
+
+  const handleJoin = async () => {
+    setJoining(true)
+    setError('')
+    try {
+      await tournamentService.join(id)
+      const { data } = await tournamentService.getById(id)
+      setTournament(data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to join tournament')
+    } finally {
+      setJoining(false)
+    }
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><Loader message="Loading tournament..." /></div>
+  if (!tournament) return <p className="text-gray-400 text-center py-20">Tournament not found.</p>
+
+  const isRegistered = tournament.players?.some?.(p => p.user_id === user?.user_id)
+  const spotsLeft = tournament.max_players - tournament.current_players
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {/* Header */}
       <div className="mb-8">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">
-          ← Back
-        </Button>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">← Back</Button>
         <h1 className="text-4xl font-bold text-white mb-2">{tournament.name}</h1>
         <p className="text-gray-400">{tournament.description}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Tournament Info */}
           <Card variant="glow">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-white mb-4">Tournament Details</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Format</p>
-                  <p className="text-lg font-semibold text-neon-blue">{tournament.format}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Status</p>
-                  <Badge variant={tournament.status === 'ongoing' ? 'success' : 'primary'}>
-                    {tournament.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Prize Pool</p>
-                  <p className="text-lg font-semibold text-neon-pink">💰 {tournament.prize}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Entry Fee</p>
-                  <p className="text-lg font-semibold text-white">{tournament.entryFee}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Start Date</p>
-                  <p className="text-lg font-semibold text-white">{tournament.startDate}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Max Players</p>
-                  <p className="text-lg font-semibold text-white">{tournament.maxPlayers}</p>
-                </div>
+                {[
+                  { label: 'Format', value: tournament.format, color: 'text-neon-blue' },
+                  { label: 'Status', value: tournament.status, badge: true },
+                  { label: 'Prize Pool', value: `💰 ${tournament.prize_pool?.toLocaleString() ?? 0} coins`, color: 'text-neon-pink' },
+                  { label: 'Start Date', value: tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : '—', color: 'text-white' },
+                  { label: 'Max Players', value: tournament.max_players, color: 'text-white' },
+                  { label: 'Location', value: tournament.location || 'Virtual', color: 'text-white' },
+                ].map(({ label, value, color, badge }) => (
+                  <div key={label}>
+                    <p className="text-gray-400 text-sm mb-1">{label}</p>
+                    {badge
+                      ? <Badge variant={tournament.status === 'active' ? 'success' : 'primary'}>{value}</Badge>
+                      : <p className={`text-lg font-semibold ${color}`}>{value}</p>
+                    }
+                  </div>
+                ))}
               </div>
             </div>
           </Card>
 
-          {/* Players Section */}
+          {/* Matches */}
+          {matches.length > 0 && (
+            <Card variant="glow">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Matches</h2>
+                <div className="space-y-2">
+                  {matches.map((m) => (
+                    <div
+                      key={m.match_id}
+                      className="flex items-center justify-between p-3 bg-dark-800 rounded-lg hover:bg-dark-700 cursor-pointer transition-smooth"
+                      onClick={() => navigate(`/match/${m.match_id}`)}
+                    >
+                      <span className="text-white font-semibold">{m.player1_username} vs {m.player2_username}</span>
+                      <div className="flex items-center gap-3">
+                        {m.score && <span className="text-neon-blue font-bold">{m.score.player1} - {m.score.player2}</span>}
+                        <Badge variant={m.status === 'completed' ? 'success' : m.status === 'live' ? 'danger' : 'primary'} size="sm">
+                          {m.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Players */}
           <Card variant="glow">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-white mb-4">
-                Registered Players ({tournament.players}/{tournament.maxPlayers})
+                Registered Players ({tournament.current_players}/{tournament.max_players})
               </h2>
-              <ProgressBar
-                value={tournament.players}
-                max={tournament.maxPlayers}
-                label="Registration Progress"
-              />
-              <div className="mt-6 space-y-2">
-                {players.map((player, idx) => (
-                  <motion.div
-                    key={player.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center justify-between p-3 bg-dark-800 rounded-lg hover:bg-dark-700 transition-smooth"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neon-blue to-neon-purple flex items-center justify-center text-sm font-bold">
-                        {player.rank}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{player.name}</p>
-                        <p className="text-xs text-gray-400">Rating: {player.rating}</p>
-                      </div>
-                    </div>
-                    <Badge variant="primary" size="sm">
-                      Rank #{player.rank}
-                    </Badge>
-                  </motion.div>
-                ))}
-              </div>
+              <ProgressBar value={tournament.current_players} max={tournament.max_players} label="Registration Progress" />
             </div>
           </Card>
         </div>
@@ -122,47 +131,35 @@ export default function TournamentDetailsPage() {
         <div>
           <Card variant="glow">
             <div className="p-6 space-y-4">
+              {error && <p className="text-red-400 text-sm">{error}</p>}
               <div>
                 <p className="text-gray-400 text-sm mb-2">Your Status</p>
-                <Badge variant={tournament.registered ? 'success' : 'warning'}>
-                  {tournament.registered ? '✓ Registered' : 'Not Registered'}
+                <Badge variant={isRegistered ? 'success' : 'warning'}>
+                  {isRegistered ? '✓ Registered' : 'Not Registered'}
                 </Badge>
               </div>
 
-              {!tournament.registered ? (
-                <Button variant="primary" size="lg" className="w-full">
+              {!isRegistered && tournament.status === 'registration' && (
+                <Button variant="primary" size="lg" className="w-full" onClick={handleJoin} isLoading={joining}>
                   Join Tournament
                 </Button>
-              ) : (
-                <>
-                  <Button variant="primary" size="lg" className="w-full">
-                    View Bracket
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="lg"
-                    className="w-full"
-                  >
-                    Leave Tournament
-                  </Button>
-                </>
+              )}
+              {isRegistered && (
+                <Button variant="primary" size="lg" className="w-full" onClick={() => navigate(`/leaderboard`)}>
+                  View Leaderboard
+                </Button>
               )}
 
-              {/* Quick Stats */}
               <div className="pt-4 border-t border-dark-700 space-y-3">
                 <h3 className="font-semibold text-white">Quick Stats</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Spots Left</span>
-                    <span className="font-semibold text-neon-blue">
-                      {tournament.maxPlayers - tournament.players}
-                    </span>
+                    <span className="font-semibold text-neon-blue">{spotsLeft}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Registration Fee</span>
-                    <span className="font-semibold text-neon-pink">
-                      {tournament.entryFee}
-                    </span>
+                    <span className="text-gray-400">Format</span>
+                    <span className="font-semibold text-white">{tournament.format}</span>
                   </div>
                 </div>
               </div>

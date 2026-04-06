@@ -293,6 +293,45 @@ class UserClubsView(generics.ListAPIView):
             )
 
 
+class UserClubsDetailView(generics.GenericAPIView):
+    """Get all clubs a user is a member of (by user_id)."""
+    permission_classes = [AllowAny]
+    
+    def get(self, request, user_id, *args, **kwargs):
+        try:
+            # Get user's club memberships
+            members = ClubMember.objects(user_id=user_id).order_by('-joined_at')
+            
+            clubs_data = []
+            for member in members:
+                try:
+                    club = Club.objects.get(club_id=member.club_id)
+                    club_data = {
+                        'club_id': club.club_id,
+                        'name': club.name,
+                        'owner_username': club.owner_username,
+                        'member_count': club.member_count,
+                        'total_wins': club.total_wins,
+                        'role': member.role,
+                        'joined_at': member.joined_at,
+                    }
+                    clubs_data.append(club_data)
+                except Club.DoesNotExist:
+                    pass
+            
+            return Response({
+                'count': len(clubs_data),
+                'user_id': user_id,
+                'clubs': clubs_data,
+            })
+        except Exception as e:
+            logger.error(f"Error retrieving user clubs for {user_id}: {str(e)}")
+            return Response(
+                {'clubs': []},
+                status=status.HTTP_200_OK
+            )
+
+
 class ClubStatsView(generics.GenericAPIView):
     """Get club statistics."""
     permission_classes = [AllowAny]
